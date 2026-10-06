@@ -9,7 +9,7 @@ def create_table():
     cursor = conn.cursor()
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS FTO_relevance_results (
+    CREATE TABLE IF NOT EXISTS FTO_results (
 
         id INTEGER PRIMARY KEY AUTOINCREMENT,
 
@@ -18,6 +18,7 @@ def create_table():
         abstract TEXT,
         independent_claim TEXT,
         all_claims TEXT, 
+        relevance_human TEXT,
         product_description TEXT,
         relevance_framework TEXT, 
         relevance TEXT,
@@ -44,13 +45,14 @@ def save_result(result):
 
     cursor.execute(
         """
-        INSERT INTO FTO_relevance_results(
+        INSERT INTO FTO_results(
 
             publication_number,
             title,
             abstract,
             independent_claim,
             all_claims,
+            relevance_human,
             product_description,
             relevance_framework,
             relevance,
@@ -66,7 +68,7 @@ def save_result(result):
 
         )
 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?, ?, ?, ?)
         """,
         (
 
@@ -75,6 +77,7 @@ def save_result(result):
             result["abstract"],
             result["independent_claim"],
             result["all_claims"],
+            result["relevance_human"],
             result["product_description"],
             result["relevance_framework"],
             result["relevance"],
@@ -121,7 +124,7 @@ create_table()
 
 conn = sqlite3.connect(DATABASE_NAME)
 df = pd.read_sql_query(
-    "SELECT * FROM FTO_relevance_results",
+    "SELECT * FROM FTO_results",
     conn
 )
 

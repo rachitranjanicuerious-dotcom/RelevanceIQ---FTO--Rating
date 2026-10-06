@@ -169,7 +169,6 @@ if "analysis_error" not in st.session_state:
 
 create_table()
 
-
 # ============================================================
 # SIDEBAR
 # ============================================================
@@ -245,7 +244,7 @@ if page == "Database":
         database_df = pd.read_sql_query(
             """
             SELECT *
-            FROM FTO_relevance_results
+            FROM FTO_results
             ORDER BY id DESC
             """,
             conn
@@ -291,7 +290,6 @@ if page == "Database":
         )
 
     st.stop()
-
 
 # ============================================================
 # RESULTS PAGE
@@ -599,10 +597,11 @@ if run:
 
     required_columns = [
         "Publication Number",
-        "Title",  ## changed
+        "Title",  
         "Abstract",
         "Independent Claim",
-        "All Claims"
+        "All Claims",
+        "Relevance Human"
     ]
 
 
@@ -912,7 +911,6 @@ if st.session_state.analysis_started:
             result_df,
 
             use_container_width=True,
-
             hide_index=True
         )
 
@@ -999,6 +997,9 @@ if st.session_state.analysis_started:
 
                     "all_claims":
                         row["All Claims"],
+
+                    "relevance_human":
+                        row["Relevance Human"] ,    
 
                     "relevance_framework":
                         st.session_state.relevance_framework,
@@ -1187,6 +1188,9 @@ if st.session_state.analysis_started:
 
                     "Title":
                         result["title"],
+
+                    "Relevance Human":
+                        result["relevance_human"],   
 
                     "Patent Primary Features":
                         result["primary_patent_features"],

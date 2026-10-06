@@ -11,6 +11,8 @@ class RelevanceState(TypedDict) :
     independent_claim : str
     all_claims    : str
 
+    relevance_human : str
+
     # Extracted primary and secondary features
     primary_product_features : list[str]
     secondary_product_features : list[str]
