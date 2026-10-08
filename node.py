@@ -66,6 +66,7 @@ feature_parser = PydanticOutputParser(
     pydantic_object=FeatureExtraction
 )
 
+
 # 2. PATENT FEATURE EXTRACTION
 # ============================================================
 def extract_patent_features(state: RelevanceState):
@@ -79,7 +80,6 @@ Extract technical features from the patent claims.
 SOURCE PRIORITY:
 1. Independent Claim — identify core mandatory limitations.
 2. All Claims — identify additional dependent-claim limitations.
-3. Abstract and Title —  these are for context only.
 
 Classify every extracted technical feature into PRIMARY or SECONDARY.
 
@@ -228,9 +228,6 @@ Do not determine relevance from:
 - the patent title, the abstract, the general technical field, specification-only disclosure;
 - a simple count of matching product features.
 
-The title, abstract, specification, publication_number, and examples may be used to
-understand technical context, but they cannot replace the limitations
-of an actual claim.
 
 ============================================================
 CLAIM AS A COMPLETE COMBINATION
@@ -285,8 +282,8 @@ For example, do not take:
 - D from Claim 5
 
 and treat A+B+C+D as one claimed combination.
-Every relevance conclusion must be traceable to an actual claim.
 
+Every relevance conclusion must be traceable to an actual claim.
 ============================================================
 PRODUCT EVIDENCE CLASSIFICATION
 ============================================================
@@ -320,7 +317,7 @@ CRITICAL RULE:
 NOT DISCLOSED / UNCERTAIN is NOT the same as CONFIRMED ABSENT /
 INCOMPATIBLE.
 
-Do not infer absence solely because a limitation is not mentioned.
+Do not infer absence solely because a limitation is not mentioned or is routine.
 
 ============================================================
 DO NOT INVENT PRODUCT FEATURES
@@ -400,13 +397,6 @@ D and E do not by themselves make the claim less relevant.
 
 The analysis should focus on whether the product corresponds to
 the claimed technical combination. The product can have additional features, the anlysis has to be on whether the claimed patent features are in the product.
-
-============================================================
-SPECIFICATION AND ABSTRACT
-============================================================
-
-The specification, examples, abstract, and title are used only to
-understand the context and not for analysis.
 
 ============================================================
 CLAIM-BY-CLAIM ANALYSIS PROCESS
@@ -504,7 +494,6 @@ Do not conclude that:
 - the product does not infringe;
 - the patent is valid;
 - the patent is invalid;
-- the patent is enforceable;
 
 Use technical screening language such as:
 - technically relevant;
@@ -553,8 +542,6 @@ The rationale must:
 - explain the technical correspondence;
 - identify important material distinctions where supported;
 - distinguish uncertainty from confirmed absence;
-- explain why the selected rating is preferred over the nearest
-  alternative.
 
 Avoid generic statements such as:
 
@@ -613,7 +600,7 @@ The reasoning field explains why the final relevance rating is M+ or L under the
 If the final relevance rating is H:
 - Return an empty string "" for the reasoning field.
 
-If the final relevance rating is NR (in case of framework_only_analysis):
+If the final relevance rating is NR 
 - Return an empty string "" for the reasoning field.
 
 If the final relevance rating is M+ or L:
@@ -685,12 +672,11 @@ Perform this analysis independently as per the relevance framework provided by t
 Perform the complete claim-centric FTO analysis required by the common
 FTO methodology before assigning the Framework-Only rating.
 
-# Prioritize correctly identifying H references and do not miss H merely
-# because the product does not disclose every specific limitation of the
-# claim.
+# Do not downgrade H to M+ or L solely because a product limitation is
+# not explicitly stated. Do not treat silence as affirmative absence.
 
-Do not downgrade H to M+ or L solely because a product limitation is
-not explicitly stated. Do not treat silence as affirmative absence.
+Do not downgrade H merely because a minor, routine, contextual, or
+implementation-specific product limitation is not explicitly stated.
 
 ============================================================
 INPUTS
@@ -738,6 +724,7 @@ Identify the strongest actual claim or claims relevant to the product.
 
 Perform the complete claim analysis according to the FTO
 methodology.
+
 Then apply the USER-PROVIDED RELEVANCE FRAMEWORK to determine the
 final rating.
 
@@ -853,18 +840,6 @@ Return ONLY valid JSON.
     # ========================================================
     # DETAILED FTO ANALYSIS
     # ========================================================
-    #
-    # The detailed analysis now runs AFTER the Framework-Only
-    # analysis.
-    # It receives the Framework-Only result and acts as the
-    # validation/correction stage:
-    
-    # If the Framework-Only rating is supported by the detailed
-    # FTO analysis, state["relevance"] remains the same.
-    # If the detailed FTO analysis identifies a material reason 
-    # why that rating is incorrect, state["relevance"] is changed.
-
-    # ========================================================
 
     framework_only_rating = state.get(
         "relevance_framework_only",
@@ -953,7 +928,7 @@ Do NOT change the rating merely because:
 - a routine/conventional feature differs;
 - the Framework-Only rationale is less detailed than your analysis.
 
-Silence is NOT affirmative absence.
+Silence is NOT affirmative absence if it is very obvious or routine.
 ============================================================
 DETAILED RATING CALIBRATION
 ============================================================
@@ -983,12 +958,17 @@ H can still be appropriate when some claim details are:
 - routine technical details;
 - not disclosed but are obvious in that context
 
-Do not require the product description to reproduce every claim detail
+Do not require the product description to reproduce every minor/ routine claim detail
 before assigning H.
 
 However, do not assign H when the product evidence clearly establishes
 that a material limitation required by the relevant claim is absent or
 technically incompatible.
+
+# Added
+
+An important limitation that is NOT DISCLOSED / UNCERTAIN may prevent H
+when that limitation materially narrows the claimed technical solution.
 
 ------------------------------------------------------------
 M+ — RELEVANT
@@ -1029,12 +1009,22 @@ A limitation should support an L rating only when it is technically
 meaningful and materially distinguishes the claimed solution.
 
 Do not assign L solely because one or more product details are
-undisclosed or uncertain.
+undisclosed or uncertain or routine.
 
 -------------------------------------------------------------
 NR - Non Relevant
 -------------------------------------------------------------
-The patent does not disclose or claim the primary features of the target product, or its claimed scope is substantially unrelated to the target product. 
+
+Assign NR only when the patent claims do not meaningfully correspond to any
+primary technical feature or core technical functionality of the product.
+
+If an actual claim shares a meaningful primary product functionality or
+technical architecture but also contains material limitations that the
+product does not establish, the rating should generally be M+ or L rather
+than NR, depending on the degree of technical overlap.
+
+NR should be reserved for cases where the strongest actual claims are
+substantially unrelated to the product's primary technical functionality.
 -------------------------------------------------------------
 
 ============================================================
@@ -1125,7 +1115,7 @@ After completing the detailed analysis:
   exactly the same rating.
 - If the Framework-Only rating is not supported because of a material
   claim-supported distinction identified by the detailed analysis,
-  correct `relevance`.
+  correct `relevance`. The corrected relevance can be any one of H, M+, L, NR whatever the detailed analysis finds accurate (not just one rating below or above). 
 - The final `relevance` must be exactly one of:
 
 H
@@ -1138,9 +1128,6 @@ must NOT be overwritten by this analysis.
 
 The rationale must explain the FINAL detailed rating, not merely repeat
 the Framework-Only rationale.
-
-# The reasoning must explain whether the Framework-Only rating was
-# confirmed or corrected and why.
 
 ============================================================
 OUTPUT
